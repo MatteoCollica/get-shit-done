@@ -13,6 +13,10 @@ Execute it as root because it modifies your hosts file and restarts your network
 ## To disable workmode
 
     $ sudo workmode play
+    
+## To check if workmode is enabled
+
+    $ workmode check
 
 ### $siteList
 
