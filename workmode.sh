@@ -16,20 +16,12 @@ exit_with_error()
     exit $1
 }
 
-trim()
-{
-    echo $1
-}
-
-to_lower()
-{
-    echo $1 | tr '[A-Z]' '[a-z]'
-}
+to_lower() { echo $1 | tr '[A-Z]' '[a-z]'; }
 
 print_help()
 {
     cat <<EOF
-Usage: `basename $0` [work | play]
+Usage: `basename $0` [work | play | check]
 EOF
 }
 
@@ -40,17 +32,17 @@ work()
     # if no hosts file found...
     [ -e "$1" ] || exit_with_error $E_NO_HOSTS_FILE "No hosts file found"
 
-    ini_file="$HOME/.config/get-shit-done.ini"
+    ini_file="$HOME/.config/workmode.ini"
 
-    site_list=( 'reddit.com' 'forums.somethingawful.com' 'somethingawful.com'
-		'digg.com' 'break.com' 'news.ycombinator.com'
-		'infoq.com' 'bebo.com' 'twitter.com'
-		'facebook.com' 'blip.com' 'youtube.com'
-		'vimeo.com' 'delicious.com' 'flickr.com'
-		'friendster.com' 'hi5.com' 'linkedin.com'
-		'livejournal.com' 'meetup.com' 'myspace.com'
-		'plurk.com' 'stickam.com' 'stumbleupon.com'
-		'yelp.com' 'slashdot.org' )
+    site_list=( 'reddit.com' 'somethingawful.com'
+        'digg.com' 'break.com' 'news.ycombinator.com'
+        'infoq.com' 'twitter.com' 'netflix.com'
+        'facebook.com' 'youtube.com' 'instagram.com'
+        'vimeo.com' 'del.icio.us' 'flickr.com'
+        'hi5.com' 'linkedin.com' 'tiktok.com'
+        'livejournal.com' 'meetup.com' 'myspace.com'
+        'plurk.com' 'stumbleupon.com'
+        'yelp.com' 'slashdot.org' )
 
     # add sites from ini file
     # to site_list array
@@ -58,12 +50,7 @@ work()
 
     file="$1"
     
-    # check if work mode has been set
-    if grep $start_token $file &> /dev/null; then
-        if grep $end_token $file &> /dev/null; then
-            exit_with_error $E_ALREADY_SET "Work mode already set."
-        fi
-    fi
+    check $1 && exit_with_error $E_ALREADY_SET "Work mode already set."
 
     echo $start_token >> $file
 
@@ -85,15 +72,12 @@ play()
     sed_script="{
 s/$end_token/$end_token/
 t finished_sites
-
 s/$start_token/$start_token/
 x
 t started_sites
-
 s/$start_token/$start_token/
 x
 t started_sites
-
 p
 b end
 : started_sites
@@ -106,12 +90,24 @@ d
 }"
     # if no hosts file found...
     [ -e "$1" ] || exit_with_error $E_NO_HOSTS_FILE "No hosts file found"
+    check $1 || exit_with_error $E_ALREADY_SET "Work mode already unset."
 
     file=$1
 
     sed --in-place -e "$sed_script" $file
 
     $restart_network
+}
+
+check()
+{
+    # check if work mode has been set
+    if grep "$start_token" $1 &> /dev/null; then
+        if grep "$end_token" $1 &> /dev/null; then
+            return 0
+        fi
+    fi
+    return 1
 }
 
 sites_from_ini()
@@ -151,38 +147,30 @@ sites_from_ini()
 # check for input parameters
 [[ "$#" -eq 0 ]] && exit_with_error $E_NO_PARAMS "No parameters given"
 
-curr_user=$(trim $(whoami))
-curr_user=$(to_lower $curr_user)
-
-# run fron root user
+# run from root user
 # to change hosts file
-[ $curr_user == "root" ] || exit_with_error $E_USER_NOT_ROOT "Please, run from root"
+[ "$(whoami)" == "root" -o "$1" == "check" ] || exit_with_error $E_USER_NOT_ROOT "Please, run from root"
 
-
-uname=$(trim `uname`)
-
-if [ "Linux" == $uname ]; then
+if [ "$(uname -s)" == "Linux" ]; then
     restart_network="/etc/init.d/networking restart"
-elif [ "Darwin" == $uname ]; then
+elif [ "$(uname -s)" == "Darwin" ]; then
     restart_network="dscacheutil -flushcache"
-else
-    message="Please, contribute DNS cache flush command on GitHub"
-    restart_network="echo $message"
 fi
 
 ##############################
 
 hosts_file="/etc/hosts"
-start_token="## start-gsd"
-end_token="## end=gsd"
+start_token="## start-wm"
+end_token="## end=wm"
 
 action=$1
 
 case "$action" in
     "play")
-        play $hosts_file; ;;
+        play $hosts_file ;;
     "work")
-        work $hosts_file; ;;
-        *) exit_with_error $E_WEIRD_PARAMS "Some weird params given" ;;
+        work $hosts_file ;;
+    "check")
+        check $hosts_file && echo "Work mode is set." || echo "Work mode isn't set." ;;
+    *) exit_with_error $E_WEIRD_PARAMS "Some weird params given" ;;
 esac
-
