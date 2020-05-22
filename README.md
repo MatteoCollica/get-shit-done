@@ -8,11 +8,11 @@ Execute it as root because it modifies your hosts file and restarts your network
 
 ## To enable workmode
 
-    $ sudo get-shit-done work
+    $ sudo workmode work
 
 ## To disable workmode
 
-    $ sudo get-shit-done play
+    $ sudo workmode play
 
 ### $siteList
 
