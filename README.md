@@ -1,6 +1,6 @@
 # workmode
 
-workmode is an easy to use bash script that blocks websites known to distract us from our work.
+An easy to use bash script that blocks websites known to distract us from our work.
 
 After cloning this repository, put it in your $PATH and ensure it is executable.
 
